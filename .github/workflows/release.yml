@@ -247,14 +247,21 @@ jobs:
       - name: List artifacts
         run: ls -lh dist
 
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum *.vsix > SHA256SUMS
+          cat SHA256SUMS
+
       - name: Create or update release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           tag="$GITHUB_REF_NAME"
-          gh release create "$tag" dist/*.vsix \
+          gh release create "$tag" dist/*.vsix dist/SHA256SUMS \
             --title "$tag" \
             --generate-notes \
             --latest \
-            || gh release upload "$tag" dist/*.vsix --clobber
+            || gh release upload "$tag" dist/*.vsix dist/SHA256SUMS --clobber
