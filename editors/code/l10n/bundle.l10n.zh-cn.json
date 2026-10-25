@@ -1,0 +1,14 @@
+{
+  "RGC: Starting…": "RGC: 启动中…",
+  "RGC: Ready": "RGC: 已就绪",
+  "RGC: Not Running": "RGC: 未运行",
+  "RGC language server status (click to restart)": "RGC 语言服务器状态（点击重启）",
+  "Please open a .rg file first.": "请先打开一个 .rg 文件。",
+  "Output file name (without path)": "输出文件名（不含路径）",
+  "Run arguments (optional)": "运行参数（可选）",
+  "RGC language server failed to start: {0}": "RGC 语言服务器启动失败：{0}",
+  "Configured command: {0}": "当前配置的命令：{0}",
+  "The RGC language server is not available yet. Syntax highlighting and build commands still work.": "RGC 语言服务器尚未就绪。语法高亮与编译命令仍可正常使用。",
+  "RGC Language Server": "RGC 语言服务器",
+  "RGC LSP Trace": "RGC LSP 通信日志"
+}

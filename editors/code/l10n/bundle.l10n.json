@@ -1,0 +1,14 @@
+{
+  "RGC: Starting…": "RGC: Starting…",
+  "RGC: Ready": "RGC: Ready",
+  "RGC: Not Running": "RGC: Not Running",
+  "RGC language server status (click to restart)": "RGC language server status (click to restart)",
+  "Please open a .rg file first.": "Please open a .rg file first.",
+  "Output file name (without path)": "Output file name (without path)",
+  "Run arguments (optional)": "Run arguments (optional)",
+  "RGC language server failed to start: {0}": "RGC language server failed to start: {0}",
+  "Configured command: {0}": "Configured command: {0}",
+  "The RGC language server is not available yet. Syntax highlighting and build commands still work.": "The RGC language server is not available yet. Syntax highlighting and build commands still work.",
+  "RGC Language Server": "RGC Language Server",
+  "RGC LSP Trace": "RGC LSP Trace"
+}

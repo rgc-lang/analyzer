@@ -1,0 +1,13 @@
+{
+  "displayName": "RGC Lang",
+  "description": "RGC compiled-language support: syntax highlighting, build/run/test commands, and a bundled LSP client for the RGC analyzer over stdio.",
+  "command.build.title": "Build Current File",
+  "command.run.title": "Run Current File",
+  "command.test.title": "Test Current File",
+  "command.restart.title": "Restart Language Server",
+  "config.title": "RGC",
+  "config.compilerPath.description": "Path to the `rgc` compiler executable used by the build/run/test commands. Defaults to `rgc` on `PATH`.",
+  "config.serverPath.description": "Path to the RGC analyzer executable. Defaults to `rgc-analyzer`: the bundled `server/rgc-analyzer` is used when the extension ships one, otherwise `rgc-analyzer` is looked up on `PATH`.",
+  "config.serverArgs.description": "Command-line arguments passed to the RGC analyzer. Empty by default; the analyzer always speaks LSP over stdio.",
+  "config.trace.description": "Trace level for LSP communication."
+}

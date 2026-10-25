@@ -1,0 +1,116 @@
+{
+  "def — function / 函数": {
+    "prefix": "def",
+    "body": [
+      "def ${1:name}(${2}) -> ${3:int} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Define a function / 定义函数"
+  },
+  "defv — void function / 无返回值函数": {
+    "prefix": "defv",
+    "body": [
+      "def ${1:name}(${2}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Define a function without return type / 定义无返回值函数"
+  },
+  "main — entry point / 入口函数": {
+    "prefix": "main",
+    "body": [
+      "def main() {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Program entry point / 程序入口"
+  },
+  "class — class / 类": {
+    "prefix": "class",
+    "body": [
+      "class ${1:Name} {",
+      "\t${2:field}: ${3:int}",
+      "",
+      "\tdef ${4:method}(self) -> ${5:int} {",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ],
+    "description": "Define a class / 定义类"
+  },
+  "enum — enum / 枚举": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} {",
+      "\t${2:Variant}(${3:int})",
+      "\t${4:Empty}",
+      "}"
+    ],
+    "description": "Define an enum / 定义枚举"
+  },
+  "interface — interface / 接口": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:Name} {",
+      "\tdef ${2:method}(self) -> ${3:int}",
+      "}"
+    ],
+    "description": "Define an interface / 定义接口"
+  },
+  "if — conditional / 条件": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "\t$0",
+      "} elif ${2:condition2} {",
+      "\t${3}",
+      "} else {",
+      "\t${4}",
+      "}"
+    ],
+    "description": "If / elif / else / 条件分支"
+  },
+  "for — loop / 循环": {
+    "prefix": "for",
+    "body": [
+      "for ${1:i} in ${2:range(10)} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "For-in loop / for 循环"
+  },
+  "while — loop / 循环": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "While loop / while 循环"
+  },
+  "match — pattern matching / 模式匹配": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value} {",
+      "\tcase ${2:Pattern}(${3:x}) => ${4:result}",
+      "\tcase _ => ${0:default}",
+      "}"
+    ],
+    "description": "Pattern matching / 模式匹配"
+  },
+  "import — module / 模块导入": {
+    "prefix": "import",
+    "body": [
+      "import ${1:module}"
+    ],
+    "description": "Import a module / 导入模块"
+  },
+  "print — output / 输出": {
+    "prefix": "print",
+    "body": [
+      "print(${1:value})"
+    ],
+    "description": "Print to stdout / 打印输出"
+  }
+}

@@ -1,0 +1,53 @@
+name: Publish to Open VSX
+
+# 使用 Open VSX trusted publishing（OIDC），不依赖 PAT。
+# 需在 https://open-vsx.org/user-settings/trusted-publishers 注册：
+#   Namespace: rgc-dev
+#   Provider: GitHub Actions
+#   Organization: rgc-lang
+#   Repository: analyzer
+#   Workflow filename: publish-openvsx.yml
+#   Environment name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-openvsx
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: publish
+    defaults:
+      run:
+        working-directory: editors/code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/code/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Package VSIX
+        run: npm run package
+
+      - name: Publish to Open VSX (OIDC)
+        run: npx ovsx publish rgc-lang.vsix --trusted-publishing

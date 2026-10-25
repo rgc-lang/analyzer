@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extension:
+    name: extension (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: editors/code
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/code/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Package VSIX
+        run: npm run package
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-${{ matrix.os }}
+          path: editors/code/rgc-lang.vsix
+          if-no-files-found: error
+
+  analyzer:
+    name: analyzer source
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Read pinned rgc tag
+        id: rgc
+        run: echo "ref=$(cat rgc-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout rgc frontend
+        uses: actions/checkout@v5
+        with:
+          repository: rgc-lang/rgc
+          ref: ${{ steps.rgc.outputs.ref }}
+          path: vendor/rgc
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Validate analyzer module closure
+        run: node scripts/build-analyzer.js --check
+
+  conclusion:
+    # Required for branch protection: a skipped matrix job must not count as success.
+    needs: [extension, analyzer]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conclusion
+        run: |
+          jq -C <<< '${{ toJson(needs) }}'
+          jq --exit-status 'all(.result == "success" or .result == "skipped")' <<< '${{ toJson(needs) }}'

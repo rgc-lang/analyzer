@@ -1,0 +1,13 @@
+{
+  "displayName": "RGC 语言",
+  "description": "RGC 编译型语言支持：语法高亮、编译/运行/测试命令，以及内置的 RGC 分析器 LSP 客户端（stdio）。",
+  "command.build.title": "编译当前文件",
+  "command.run.title": "运行当前文件",
+  "command.test.title": "测试当前文件",
+  "command.restart.title": "重启语言服务器",
+  "config.title": "RGC",
+  "config.compilerPath.description": "`rgc` 编译器可执行文件路径（用于编译/运行/测试命令）。默认使用 `PATH` 中的 `rgc`。",
+  "config.serverPath.description": "RGC 分析器可执行文件路径。默认值为 `rgc-analyzer`：扩展自带 `server/rgc-analyzer` 时优先使用内置版本，否则从 `PATH` 查找 `rgc-analyzer`。",
+  "config.serverArgs.description": "传给 RGC 分析器的命令行参数。默认为空；分析器始终通过 stdio 使用 LSP。",
+  "config.trace.description": "LSP 通信日志级别。"
+}

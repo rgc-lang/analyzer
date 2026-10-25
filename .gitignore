@@ -1,0 +1,8 @@
+build/
+dist/
+vendor/
+editors/code/node_modules/
+editors/code/out/
+editors/code/server/
+editors/code/*.vsix
+.DS_Store

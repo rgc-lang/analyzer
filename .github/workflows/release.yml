@@ -1,0 +1,260 @@
+# Multi-platform release.
+#
+# For every supported platform this workflow:
+#   1. checks out the pinned rgc frontend (rgc-version),
+#   2. downloads the matching rgc toolchain archive from rgc-lang/rgc,
+#   3. builds server/rgc-analyzer + server/lib and smoke-tests it,
+#   4. packages a platform-specific VSIX, plus a universal package on linux-x64,
+#   5. attaches every VSIX to the GitHub Release.
+#
+# Publishing to the VS Code Marketplace and Open VSX is handled by the
+# Entra ID / trusted-publishing workflows (publish-marketplace.yml and
+# publish-openvsx.yml).
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      rgc_tag:
+        description: rgc toolchain release tag (defaults to the rgc-version file)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RGC_SOURCE_REPO: rgc-lang/rgc
+
+jobs:
+  meta:
+    name: version metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      rgc_tag: ${{ steps.meta.outputs.rgc_tag }}
+      rgc_version: ${{ steps.meta.outputs.rgc_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Resolve versions
+        id: meta
+        shell: bash
+        env:
+          INPUT_RGC_TAG: ${{ inputs.rgc_tag }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./editors/code/package.json').version")
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME#v}"
+            if [[ "$version" != "$tag" ]]; then
+              echo "error: package.json version $version does not match tag $GITHUB_REF_NAME" >&2
+              exit 1
+            fi
+          fi
+          rgc_tag="$INPUT_RGC_TAG"
+          if [[ -z "$rgc_tag" ]]; then
+            rgc_tag=$(cat rgc-version)
+          fi
+          rgc_version="${rgc_tag#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "rgc_tag=$rgc_tag" >> "$GITHUB_OUTPUT"
+          echo "rgc_version=$rgc_version" >> "$GITHUB_OUTPUT"
+          echo "extension $version, rgc toolchain $rgc_tag (assets rgc-$rgc_version-*)"
+
+  dist:
+    name: dist (${{ matrix.code-target }})
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - code-target: linux-x64
+            os: ubuntu-latest
+            rgc-target: x86_64-unknown-linux-gnu
+            rgc-ext: tar.gz
+            rgc-bin: rgc
+          - code-target: linux-arm64
+            os: ubuntu-24.04-arm
+            rgc-target: aarch64-unknown-linux-gnu
+            rgc-ext: tar.gz
+            rgc-bin: rgc
+          - code-target: darwin-x64
+            os: macos-15-intel
+            rgc-target: x86_64-apple-darwin
+            rgc-ext: tar.gz
+            rgc-bin: rgc
+          - code-target: darwin-arm64
+            os: macos-15
+            rgc-target: aarch64-apple-darwin
+            rgc-ext: tar.gz
+            rgc-bin: rgc
+          - code-target: win32-x64
+            os: windows-latest
+            rgc-target: x86_64-pc-windows-msvc
+            rgc-ext: zip
+            rgc-bin: rgc.exe
+          - code-target: win32-arm64
+            os: windows-11-arm
+            rgc-target: aarch64-pc-windows-msvc
+            rgc-ext: zip
+            rgc-bin: rgc.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Checkout rgc frontend
+        uses: actions/checkout@v5
+        with:
+          repository: rgc-lang/rgc
+          ref: ${{ needs.meta.outputs.rgc_tag }}
+          path: vendor/rgc
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/code/package-lock.json
+
+      - name: Download rgc toolchain
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RGC_TAG: ${{ needs.meta.outputs.rgc_tag }}
+          RGC_VERSION: ${{ needs.meta.outputs.rgc_version }}
+          RGC_TARGET: ${{ matrix.rgc-target }}
+          RGC_EXT: ${{ matrix.rgc-ext }}
+        run: |
+          set -euo pipefail
+          archive="rgc-${RGC_VERSION}-${RGC_TARGET}.${RGC_EXT}"
+          mkdir -p toolchain
+          gh release download "$RGC_TAG" \
+            --repo "$RGC_SOURCE_REPO" \
+            --pattern "$archive" \
+            --dir toolchain \
+            --clobber
+          echo "RGC_ARCHIVE=$archive" >> "$GITHUB_ENV"
+
+      - name: Extract rgc toolchain (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Expand-Archive -Path "toolchain/$env:RGC_ARCHIVE" -DestinationPath toolchain -Force
+
+      - name: Extract rgc toolchain (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: tar -xzf "toolchain/$RGC_ARCHIVE" -C toolchain
+
+      # rgc links with g++; MSYS2 provides it on Windows runners.
+      - name: Setup gcc (Windows x64)
+        if: matrix.code-target == 'win32-x64'
+        uses: msys2/setup-msys2@v2
+        with:
+          install: mingw-w64-ucrt-x86_64-gcc
+
+      - name: Add gcc to PATH (Windows x64)
+        if: matrix.code-target == 'win32-x64'
+        shell: bash
+        run: echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
+
+      # The preinstalled gcc lives in an x64 MinGW tree; use the native
+      # CLANGARM64 toolchain so the bundled analyzer is really ARM64.
+      - name: Setup gcc (Windows ARM64)
+        if: matrix.code-target == 'win32-arm64'
+        shell: pwsh
+        run: |
+          $env:MSYSTEM = "CLANGARM64"
+          & "C:\msys64\usr\bin\bash.exe" -lc "pacman -S --needed --noconfirm mingw-w64-clang-aarch64-gcc-compat"
+          if ($LASTEXITCODE -ne 0) {
+            throw "MSYS2 package installation failed with exit code $LASTEXITCODE"
+          }
+          "C:/msys64/clangarm64/bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Verify native ARM64 toolchain
+        if: matrix.code-target == 'win32-arm64'
+        shell: bash
+        run: g++ -dumpmachine | grep -q aarch64
+
+      - name: Build analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/build-analyzer.js \
+            --rgc "toolchain/${{ matrix.rgc-bin }}" \
+            --frontend vendor/rgc/src/src \
+            --lib vendor/rgc/lib \
+            --out editors/code/server
+
+      - name: Smoke-test analyzer
+        shell: bash
+        run: node scripts/smoke-lsp.js "editors/code/server/rgc-analyzer${{ runner.os == 'Windows' && '.exe' || '' }}"
+
+      - name: Install extension dependencies
+        working-directory: editors/code
+        run: npm ci
+
+      - name: Package VSIX (${{ matrix.code-target }})
+        working-directory: editors/code
+        shell: bash
+        run: |
+          mkdir -p ../../dist
+          npx vsce package --target ${{ matrix.code-target }} -o "../../dist/rgc-lang-${{ matrix.code-target }}.vsix"
+
+      - name: Package universal VSIX (no bundled server)
+        if: matrix.code-target == 'linux-x64'
+        working-directory: editors/code
+        shell: bash
+        run: |
+          rm -rf server
+          mkdir -p ../../dist
+          npx vsce package -o ../../dist/rgc-lang-universal.vsix
+
+      - name: Upload VSIX artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.code-target }}
+          path: dist/*.vsix
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub Release
+    if: github.ref_type == 'tag'
+    needs: [meta, dist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download VSIX artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          gh release create "$tag" dist/*.vsix \
+            --title "$tag" \
+            --generate-notes \
+            --latest \
+            || gh release upload "$tag" dist/*.vsix --clobber
