@@ -44,18 +44,22 @@ jobs:
         run: npm run package
 
       - name: Azure login (OIDC managed identity)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           allow-no-subscriptions: true
+          enable-AzPSSession: true
 
       # 一次性：把输出中的 id（托管身份的 Azure DevOps profile ID）加入
       # https://marketplace.visualstudio.com/manage/publishers/rgc-dev 的成员（角色 Contributor）
       - name: Print managed identity resource ID (one-time setup)
         run: |
-          az rest -u "https://app.vssps.visualstudio.com/_apis/profile/profiles/me" --resource 499b84ac-1321-427f-aa17-267ca6975798
+          echo "=== profiles/me ==="
+          az rest -u "https://app.vssps.visualstudio.com/_apis/profile/profiles/me" --resource 499b84ac-1321-427f-aa17-267ca6975798 || true
+          echo "=== connectionData ==="
+          az rest -u "https://app.vssps.visualstudio.com/_apis/connectionData?api-version=7.1" --resource 499b84ac-1321-427f-aa17-267ca6975798
 
       - name: Publish to VS Code Marketplace
         run: npx vsce publish --packagePath rgc-lang.vsix --azure-credential
