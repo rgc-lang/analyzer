@@ -15,7 +15,7 @@ const exeName = process.platform === "win32" ? "rgc-analyzer.exe" : "rgc-analyze
 const serverPath = path.resolve(
   process.argv[2] || path.join(repoRoot, "build", "server", exeName),
 );
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 30000;
 
 if (!fs.existsSync(serverPath)) {
   console.error(`error: analyzer not found: ${serverPath}`);

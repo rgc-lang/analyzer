@@ -101,12 +101,12 @@ jobs:
           - code-target: win32-x64
             os: windows-latest
             rgc-target: x86_64-pc-windows-msvc
-            rgc-ext: zip
+            rgc-ext: tar.gz
             rgc-bin: rgc.exe
           - code-target: win32-arm64
             os: windows-11-arm
             rgc-target: aarch64-pc-windows-msvc
-            rgc-ext: zip
+            rgc-ext: tar.gz
             rgc-bin: rgc.exe
 
     runs-on: ${{ matrix.os }}
@@ -150,8 +150,8 @@ jobs:
 
       - name: Extract rgc toolchain (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: Expand-Archive -Path "toolchain/$env:RGC_ARCHIVE" -DestinationPath toolchain -Force
+        shell: bash
+        run: tar -xzf "toolchain/$RGC_ARCHIVE" -C toolchain
 
       - name: Extract rgc toolchain (Unix)
         if: runner.os != 'Windows'
