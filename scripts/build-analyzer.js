@@ -107,6 +107,10 @@ function moduleFile(dir, name) {
   return fs.existsSync(file) ? file : undefined;
 }
 
+// Compiler-provided virtual modules have no source file on disk; the frontend
+// treats them as already loaded (see modules.rg is_virtual_module).
+const VIRTUAL_MODULES = new Set(["io", "time", "random", "os", "asyncio"]);
+
 function importsOf(source) {
   const names = [];
   const re = /^\s*import\s+([A-Za-z_][A-Za-z0-9_.]*)/gm;
@@ -134,6 +138,7 @@ function resolveClosure(analyzerDir, frontendDir) {
     for (const imported of importsOf(source)) {
       const key = imported.split(".").join("/");
       if (staged.has(key) || frontend.has(key)) continue;
+      if (VIRTUAL_MODULES.has(key)) continue;
       const file = moduleFile(frontendDir, imported);
       if (!file) {
         fail(`module \`${imported}\` (imported by ${name}.rg) was not found in ${frontendDir}`);

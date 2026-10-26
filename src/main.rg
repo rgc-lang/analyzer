@@ -31,7 +31,7 @@ public def main() -> int {
             return 0
         }
         if not str_eq(arg, "--stdio") {
-            write_stderr("error: unknown argument: " + arg + "\n")
+            write_stderr("error[E0006]: unknown argument: " + arg + "\n")
             print_usage()
             return 1
         }

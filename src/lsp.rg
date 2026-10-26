@@ -898,8 +898,13 @@ public def lsp_send_diagnostics(uri: str, path: str, items: @List[DiagItem]) {
             cl = 0
         }
         pos = "{\"line\":" + to_string(ln) + ",\"character\":" + to_string(cl) + "}"
+        # Include the unified error code in the message (matching CLI rendering).
+        m = it.msg
+        if it.code.len() > 0 {
+            m = "[" + it.code + "] " + it.msg
+        }
         msg = msg + "{\"range\":{\"start\":" + pos + ",\"end\":" + pos +
-              "},\"severity\":1,\"source\":\"rgc\",\"message\":" + jw_escape(it.msg) + "}"
+              "},\"severity\":1,\"source\":\"rgc\",\"message\":" + jw_escape(m) + "}"
         i = i + 1
     }
     msg = msg + "]}}"
